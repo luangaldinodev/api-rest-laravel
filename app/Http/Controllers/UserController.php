@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreUserRequest;
+use App\Http\Requests\UpdateUserRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -11,10 +12,13 @@ class UserController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::all();
-
+        $currentPage = $request->query('current_page') ?? 1;
+        $regsPerPage = 3;
+        $skip = ($currentPage - 1) * $regsPerPage;
+        
+        $users = User::skip($skip)->take($regsPerPage)->orderByDesc('id')->get();
         return response()->json($users);
     }
 
@@ -60,9 +64,22 @@ class UserController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(UpdateUserRequest $request, string $id)
     {
-        //
+        try {
+            
+            $user = User::findOrFail($id);
+
+            $user->update($request->validated());
+
+            return response()->json($user, 200);
+
+        } catch (\Exception $ex) {
+            return response()->json([
+                "message" => "Error updating user.",
+                "status" => 400
+            ], 400);
+        }
     }
 
     /**
@@ -70,6 +87,17 @@ class UserController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        try {
+            
+            $user = User::findOrFail($id)->delete();
+
+            return response()->json($user, 200);
+
+        } catch (\Exception $ex) {
+            return response()->json([
+                "message" => "Error deleting user.",
+                "status" => 400
+            ], 400);
+        }
     }
 }
